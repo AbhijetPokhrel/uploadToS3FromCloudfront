@@ -1,0 +1,104 @@
+<html>
+
+<head>
+    <title>Upload via cloudfront</title>
+</head>
+<style>
+    pre {
+        white-space: pre-wrap;
+        white-space: -moz-pre-wrap;
+        white-space: -pre-wrap;
+        white-space: -o-pre-wrap;
+        word-wrap: break-word;
+        width: 800px;
+        background-color: #DED;
+        padding: 20px;
+    }
+</style>
+
+<body>
+    <h2>S3 upload via cloudfront</h2>
+    <div>
+        <input type="file" id="file-input" />
+        <button onclick="uploadToS3()">Upload to s3 direct</button>
+        <button onclick="uploadViacloudfront()">Upload to s3 via Cloudfront</button>
+        <button onclick="clearLog()">Clear Log</button>
+
+        <pre id="app-console"></pre>
+    </div>
+</body>
+
+<script>
+
+    let fileInput = document.getElementById("file-input")
+    let appLogs = document.getElementById("app-console")
+    log("APP", "init....")
+
+
+    async function uploadToS3() {
+        try {
+            let TAG = "S3 upload"
+            log(TAG, "starting upload")
+            var fileList = fileInput.files;
+            let urldata = await getPresignedURL(fileList[0])
+
+            let startTime = new Date().getTime()
+            await upload(urldata.url, fileList[0])
+            log(TAG, "time taken " + (new Date().getTime() - startTime))
+        } catch (err) {
+            console.error(err)
+        }
+
+    }
+
+    async function uploadViacloudfront() {
+        try {
+            let TAG = "Cf-s3 upload"
+            log(TAG, "starting upload")
+            var fileList = fileInput.files;
+            let urldata = await getPresignedURL(fileList[0])
+
+            let startTime = new Date().getTime()
+            await upload(urldata.cfurl, fileList[0])
+            log(TAG, "time taken " + (new Date().getTime() - startTime))
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+
+    function getPresignedURL(file) {
+        return fetch(`./getPresignedURL?name=${file.name}&type=${file.type}`).then(response => response.json())
+    }
+
+    function log(TAG, msg) {
+        let str = ""
+        if (typeof msg == "object") {
+            str = JSON.stringify(msg)
+        } else {
+            str = msg
+        }
+        str = TAG + " :: " + str
+        str += "<br><br>"
+
+        str = `<p>${str}</p>`
+        appLogs.innerHTML += str
+    }
+
+    function clearLog() {
+        appLogs.innerHTML = ``
+    }
+
+    function upload(url, file) {
+        return fetch(url, {
+            method: 'PUT',
+            body: file
+        }).then(() => {
+            log("Upload", `Uploaded ${file.name}`);
+            return true
+        })
+    }
+
+</script>
+
+</html>
